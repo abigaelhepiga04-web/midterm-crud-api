@@ -257,7 +257,7 @@ URL: `http://localhost:3000/api/nonexistent`
 Expected: `404 Not Found` with route not found error
 
 
-## Reflection Answers
+## Reflection Answers Activity7.0
 
 1. What was the most challenging part of building this API?
 
@@ -310,3 +310,35 @@ Authentication: Protect endpoints using JWT tokens.
 Rate Limiting: Add express-rate-limit to prevent spam and brute-force attacks.
 Input Validation: Use class-validator or zod to validate incoming body data.
 Environment Safety: Turn off synchronize: true in production and use environment variables for database credentials.
+
+## Reflection Answers for Activity7.1
+
+1. What was the most challenging part of building this API?
+- The most challenging part of building this API is managing TypeScript configurations, handling circular dependencies between related entities (User and Task), and ensuring TypeORM decorators function correctly with proper metadata reflection.
+
+2. How does TypeORM make database operations easier compared to raw SQL?
+- TyperORM makes database operations easier because TypeORM maps database tables to TypeScript classes (entities) and provides a repository pattern with built-in methods (such as find, findOne, save, and remove). This eliminates the need to write and sanitize raw SQL queries while maintaining type safety throughout the application.
+
+3. Why is it important to exclude the password field from API responses? How did you implement this?
+- Excluding passwords is critical for security to prevent sensitive user credentials from being exposed in client-facing API responses. This was implemented by setting { select: false } on the password column decorator in the User entity and explicitly destructuring the password property out of objects in the controller before sending responses.
+
+4. Describe a scenario where you would need to use database transactions instead of individual operations.
+- Transactions are necessary when performing multiple dependent operations that must succeed or fail together as a single atomic unit (e.g., creating a user profile and an initial default task simultaneously). If any step fails, the transaction rolls back all changes to prevent data corruption or orphaned records.
+
+5. What is the difference between synchronize: true and migrations? When should you use each?
+synchronize: true automatically alters the database schema to match entity definitions every time the application starts, whereas migrations provide explicit, version-controlled scripts to update database structures step-by-step. synchronize: true should only be used during local development for rapid prototyping, while migrations must be used in production to prevent accidental data loss.
+
+6. If you had to add a Comment entity (tasks can have many comments), how would you modify the code?
+I would create a new Comment entity with a @ManyToOne relationship pointing to Task, add a corresponding @OneToMany array property (comments!: Comment[]) inside the Task entity, register the new entity in the DataSource configuration, and generate/run a new database migration.
+
+7. What security improvements would you make before deploying this API to production? (Hint: password hashing, rate limiting, authentication, etc.)
+- Implement secure password hashing (e.g., using bcrypt), add robust authentication and authorization (such as JWT tokens), incorporate rate limiting to prevent brute-force attacks, use environment variables strictly, enable HTTPS, and validate/sanitize all incoming request payloads.
+
+8. Why did you need to add the ! (definite assignment operator) to your entity properties?
+- TypeScript strict mode expects properties to be initialized in a constructor. The definite assignment operator (!) tells the TypeScript compiler that these properties will be assigned values dynamically at runtime by TypeORM, suppressing false compilation errors.
+
+9. What are the benefits of explicitly defining column types (e.g., type: 'varchar') in your entities?
+- Explicitly defining column types ensures predictable database schema generation across different environments, avoids reliance on automatic metadata reflection that can sometimes fail during builds, and guarantees strict type safety between TypeScript and MySQL.
+
+10. How do relationships in TypeORM differ from foreign keys in raw SQL? What are the advantages?
+- Raw SQL foreign keys require manual integer ID handling and explicit JOIN clauses in queries. TypeORM relationships abstract this using object-oriented properties and decorators (@ManyToOne, @OneToMany), allowing related data to be fetched easily via the relations option while still enforcing database-level foreign key constraints.
