@@ -1,6 +1,9 @@
 import { Request, Response } from 'express';
 import { AppDataSource } from '../config/data-source';
 import { User } from '../entities/User';
+import { CreateUserDto } from '../dto/user.dto';
+import bcrypt from 'bcrypt';
+
 
 
 const userRepository = AppDataSource.getRepository(User);
@@ -104,7 +107,7 @@ export class UserController {
    // POST /api/users - Create a new user
    static async create(req: Request, res: Response) {
        try {
-           const { name, email, password } = req.body;
+           const { name, email, password, phoneNumber }: CreateUserDto = req.body;
 
 
            // Validation
@@ -117,6 +120,14 @@ export class UserController {
                    }
                });
            }
+
+            // Task 2: Optional phone number validation (simple Regex check)
+            if (phoneNumber && !/^\+?[0-9]{7,15}$/.test(phoneNumber)) {
+                return res.status(400).json({
+                success: false,
+                error: { code: 'INVALID_PHONE', message: 'Invalid phone number format' }
+                });
+            }
 
 
            // Check if email already exists
@@ -131,12 +142,15 @@ export class UserController {
                });
            }
 
+           const saltRounds = parseInt(process.env.BCRYPT_SALT_ROUNDS || '10', 10);
+           const hashedPassword = await bcrypt.hash(password, saltRounds);
 
            // Create new user
            const user = userRepository.create({
                name,
                email,
-               password  // In a real app, you would hash this with bcrypt!
+               password: hashedPassword,  // In a real app, you would hash this with bcrypt!
+               phoneNumber: phoneNumber || null
            });
 
 

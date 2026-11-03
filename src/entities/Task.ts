@@ -9,6 +9,7 @@ import {
    Index
 } from 'typeorm';
 import { User } from './User';
+import { Category } from './Category';
 
 
 @Entity('tasks')
@@ -47,14 +48,32 @@ export class Task {
 
 
    // Many-to-One Relationship: Many tasks belong to one user
-   @ManyToOne(() => User, user => user.tasks, { onDelete: 'CASCADE' })
-   @JoinColumn({ name: 'userId' })
-   user!: User;
+//    @ManyToOne(() => User, user => user.tasks, { onDelete: 'CASCADE' })
+//    @JoinColumn({ name: 'userId' })
+//    user!: User;
 
+//    @Column({ type: 'int' })
+//    userId!: number;
 
-   @Column({ type: 'int' })
-   userId!: number;
+// Task 5 / Task 7: Nullable userId & ON DELETE SET NULL
+  @ManyToOne(() => User, (user) => user.tasks, { onDelete: 'SET NULL', nullable: true })
+  @JoinColumn({ name: 'userId' })
+  user!: User | null;
 
+  @Column({ type: 'int', nullable: true })
+  userId!: number | null;
+
+   // Task 3: Category Many-to-One relationship
+  @ManyToOne(() => Category, (category) => category.tasks, { nullable: true })
+  @JoinColumn({ name: 'categoryId' })
+  category!: Category | null;
+
+  @Column({ type: 'int', nullable: true })
+  categoryId!: number | null;
+
+// Task 8: Soft delete flag
+  @Column({ type: 'boolean', default: false })
+  isDeleted!: boolean;
 
    @CreateDateColumn()
    createdAt!: Date;

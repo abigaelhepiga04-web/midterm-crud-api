@@ -3,10 +3,13 @@ import { Request, Response } from 'express';
 import { AppDataSource } from '../config/data-source';
 import { Task } from '../entities/Task';
 import { User } from '../entities/User';
+import { Category } from '../entities/Category';
+import { CreateTaskDto } from '../dto/task.dto';
 
 
 const taskRepository = AppDataSource.getRepository(Task);
 const userRepository = AppDataSource.getRepository(User);
+const categoryRepository = AppDataSource.getRepository(Category);
 
 
 export class TaskController {
@@ -16,6 +19,7 @@ export class TaskController {
         
         const userIdParam = Array.isArray(req.params.userId) ? req.params.userId[0] : req.params.userId;
         const userId = parseInt(userIdParam, 10);
+        const { status, priority, page = '1', limit = '10', sortBy = 'createdAt', order = 'DESC' } = req.query;
           
            if (isNaN(userId)) {
                return res.status(400).json({
@@ -24,6 +28,14 @@ export class TaskController {
                });
            }
 
+           const pageNum = Math.max(1, parseInt(page as string));
+           const limitNum = Math.max(1, parseInt(limit as string));
+           
+           // Build query options
+           const whereCondition: any = {
+               userId,
+               isDeleted: false // Task 8: Only return tasks where isDeleted = false
+           };
 
            const user = await userRepository.findOne({ where: { id: userId } });
            if (!user) {
@@ -33,17 +45,30 @@ export class TaskController {
                });
            }
 
+             // Task 6: Filtering by status and priority
+           if (status) whereCondition.status = status;
+           if (priority) whereCondition.priority = priority;
 
-           const tasks = await taskRepository.find({
-               where: { userId },
-               order: { createdAt: 'DESC' }
+
+            // Task 9 & 10: Pagination and Dynamic Sorting
+           const [tasks, total] = await taskRepository.findAndCount({
+               where: whereCondition,
+               relations: { category: true },
+               order: { [sortBy as string]: (order as string).toUpperCase() === 'ASC' ? 'ASC' : 'DESC' },
+               take: limitNum,
+               skip: (pageNum - 1) * limitNum
            });
 
 
            res.json({
                success: true,
-               count: tasks.length,
-               data: tasks
+               data: tasks,
+               meta: {
+                   total,
+                   page: pageNum,
+                   limit: limitNum,
+                   totalPages: Math.ceil(total / limitNum)
+               }
            });
        } catch (error) {
            console.error('Error fetching tasks:', error);
@@ -60,7 +85,7 @@ export class TaskController {
        try {
           const userIdParam = Array.isArray(req.params.userId) ? req.params.userId[0] : req.params.userId;
           const userId = parseInt(userIdParam, 10);
-           const { title, description, status, priority, dueDate } = req.body;
+           const { title, description, status, priority, dueDate, categoryId }: CreateTaskDto = req.body;
 
 
            if (isNaN(userId)) {
@@ -98,13 +123,22 @@ export class TaskController {
            }
 
 
+            let category: Category | null = null;
+            if (categoryId) {
+                category = await categoryRepository.findOne({ where: { id: categoryId } });
+                if (!category) {
+                return res.status(404).json({ success: false, error: { code: 'CATEGORY_NOT_FOUND', message: 'Category not found' } });
+                }
+            }
+
            const task = taskRepository.create({
                title,
                description,
                status: status || 'pending',
                priority: priority || 'medium',
                dueDate: dueDate || null,
-               userId
+               userId,
+               categoryId: category ? category.id : null
            });
 
 
@@ -124,6 +158,27 @@ export class TaskController {
            });
        }
    }
+
+     // Task 7: Implement Aggregation Stats Endpoint GET /api/users/:userId/stats
+    static async getUserStats(req: Request, res: Response) {
+        try {
+
+        const userIdParam = Array.isArray(req.params.userId) ? req.params.userId[0] : req.params.userId;
+        const userId = parseInt(userIdParam, 10);
+        
+        const totalTasks = await taskRepository.count({ where: { userId, isDeleted: false } });
+        const completedTasks = await taskRepository.count({ where: { userId, status: 'completed', isDeleted: false } });
+        const pendingTasks = await taskRepository.count({ where: { userId, status: 'pending', isDeleted: false } });
+
+        res.json({
+            totalTasks,
+            completedTasks,
+            pendingTasks
+        });
+        } catch (error) {
+        res.status(500).json({ success: false, error: { code: 'INTERNAL_ERROR', message: 'Failed to fetch stats' } });
+        }
+    }
 
 
    // DELETE /api/tasks/:id - Delete a task
@@ -148,8 +203,8 @@ export class TaskController {
                });
            }
 
-
-           await taskRepository.remove(task);
+           task.isDeleted = true;
+           await taskRepository.save(task);
 
 
            res.json({

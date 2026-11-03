@@ -36,8 +36,12 @@ export class User {
 
 
    // One-to-Many Relationship: A user can have many tasks
-   @OneToMany(() => Task, task => task.user)
-   tasks!: Task[];
+   // @OneToMany(() => Task, task => task.user)
+   // tasks!: Task[];
+
+   // Task 5: Updated relationship cascade behavior
+  @OneToMany(() => Task, (task) => task.user)
+  tasks!: Task[];
 
 
    @CreateDateColumn()

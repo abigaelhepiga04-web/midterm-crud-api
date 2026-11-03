@@ -1,9 +1,10 @@
 import 'reflect-metadata';  // MUST be first import!
-import express from 'express';
+import express, { Request, Response, NextFunction } from 'express';
 import cors from 'cors';
 import { AppDataSource } from './config/data-source';
 import { userRoutes } from './routes/userRoutes';
 import { taskRoutes } from './routes/taskRoutes';
+import { authRoutes } from './routes/authRoutes';
 import * as dotenv from 'dotenv';
 
 dotenv.config();
@@ -15,6 +16,13 @@ const PORT = process.env.PORT || 3001;
 app.use(cors());
 app.use(express.json());
 
+// --- CUSTOM REQUEST LOGGING MIDDLEWARE (Task 13) ---
+app.use((req: Request, res: Response, next: NextFunction) => {
+    const timestamp = new Date().toISOString();
+    console.log(`[${timestamp}] ${req.method} ${req.originalUrl}`);
+    next(); // Pass control to the next middleware or route controller
+});
+
 // Health check endpoint
 app.get('/health', (req, res) => {
    res.json({
@@ -25,6 +33,7 @@ app.get('/health', (req, res) => {
 });
 
 // Routes
+app.use('/api/auth', authRoutes); 
 app.use('/api/users', userRoutes);
 app.use('/api', taskRoutes);
 

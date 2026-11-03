@@ -3,6 +3,7 @@ import { User } from '../entities/User';
 import { Task } from '../entities/Task';
 import * as dotenv from 'dotenv';
 import path from 'path';
+import { Category } from '../entities/Category';
 
 
 dotenv.config();
@@ -15,7 +16,7 @@ export const AppDataSource = new DataSource({
    username: process.env.DB_USERNAME,
    password: process.env.DB_PASSWORD,
    database: process.env.DB_DATABASE,
-   entities: [User, Task],
+   entities: [User, Task, Category],
    synchronize: false,
    // synchronize: process.env.NODE_ENV !== 'production',  // Auto-sync in development
    logging: process.env.NODE_ENV === 'development',     // Log SQL queries in dev
