@@ -46,15 +46,6 @@ export class Task {
    @Column({ type: 'date', nullable: true })
    dueDate!: Date | null;
 
-
-   // Many-to-One Relationship: Many tasks belong to one user
-//    @ManyToOne(() => User, user => user.tasks, { onDelete: 'CASCADE' })
-//    @JoinColumn({ name: 'userId' })
-//    user!: User;
-
-//    @Column({ type: 'int' })
-//    userId!: number;
-
 // Task 5 / Task 7: Nullable userId & ON DELETE SET NULL
   @ManyToOne(() => User, (user) => user.tasks, { onDelete: 'SET NULL', nullable: true })
   @JoinColumn({ name: 'userId' })
