@@ -342,3 +342,79 @@ I would create a new Comment entity with a @ManyToOne relationship pointing to T
 
 10. How do relationships in TypeORM differ from foreign keys in raw SQL? What are the advantages?
 - Raw SQL foreign keys require manual integer ID handling and explicit JOIN clauses in queries. TypeORM relationships abstract this using object-oriented properties and decorators (@ManyToOne, @OneToMany), allowing related data to be fetched easily via the relations option while still enforcing database-level foreign key constraints.
+
+
+# Task 31. Updated Documentation
+
+All new Endpoints
+
+# Task 9. 
+
+Updated the validation for: POST /api/users 
+Ensures the optional phoneNumber format is included and correct.
+
+# Task 11. 
+
+Update Task Creation: POST /api/users/:userId/tasks
+Creates a new task assigned to a specific user. Accepts categoryId in the request body to link the task to a category, and automatically sanitizes the title and description fields to strip malicious HTML tags (preventing XSS).
+
+# Task 13. 
+
+Implement Filtering: GET /api/users/:userId/tasks
+Supports query parameters like ?status=completed and ?priority=high
+
+# Task 14. 
+Implement Aggregation (Stats): GET /api/users/:userId/stats
+Provides task aggregation metrics for a user. Returns a JSON summary object containing total counts: { totalTasks, completedTasks, pendingTasks }.
+
+# Task 16. 
+Add Pagination: GET /api/users/:userId/tasks
+Supports ?page=1&limit=2 and returns a metadata object (total, page, limit, totalPages) alongside the task records.
+
+# Task 17. 
+Add Sorting: Extend the tasks endpoint to accept ?sortBy=createdAt&order=DESC (or ASC)
+Supports dynamic sorting using parameters like ?sortBy=createdAt&order=DESC.
+
+# Task 18. 
+Implement Password Hashing: POST /api/users
+Securely hashes the plain-text password using bcrypt, and saves the record to the database.
+
+# Task 19. 
+Add a Login Endpoint: POST /api/auth/login
+Authenticates users. Accepts an email and password in the request body, queries the database for the user, compares the password against the stored secure hash using bcrypt, and returns user profile data (excluding the password) upon success.
+
+# Task 23. 
+Implement Transactions: POST /api/users/with-initial-task
+Transactional dual-entity creation. Uses a TypeORM transaction to simultaneously create a User and an associated Task, ensuring that if the task creation fails, the user creation is completely rolled back.
+
+# Task 30. 
+API Versioning: All routes must be moved under v1 folder.
+
+// Routes
+app.use('/api/v1/auth', authRoutes);
+app.use('/api/v1/users', userRoutes);
+app.use('/api/v1', taskRoutes);
+
+# Database Schema & Relationships
+
+Users (users): Stores user profile details, authentication data, and account active statuses.
+
+Tasks (tasks): Represents user-owned to-do items linked via a Many-to-One relationship to User, containing properties like title, status, priority, dueDate, and a virtual/computed isOverdue getter.
+
+Categories (categories): Categorizes tasks under structured classifications (One-to-Many with Tasks).
+
+Tags (tags): Supports Many-to-Many junction mappings with tasks for dynamic multi-labeling.
+
+# Instructions on how to run the new seed script.
+
+1. Create a folder named seeds inside src/, and create a file named seed.ts inside it.
+
+2. Configure seed.ts to insert 5 dummy users, 15 dummy tasks, and their corresponding categories so that the categoryId references are correctly linked in the tasks table.
+
+3. Run the database seed script:
+    npm run seed 
+
+4. Start the development server:
+    npm run dev 
+
+

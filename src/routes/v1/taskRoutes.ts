@@ -1,6 +1,6 @@
 // src/routes/taskRoutes.ts
 import { Router } from 'express';
-import { TaskController } from '../controllers/taskController';
+import { TaskController } from '../../controllers/taskController';
 
 
 export const taskRoutes = Router();
@@ -9,6 +9,7 @@ export const taskRoutes = Router();
 // Nested routes under users
 taskRoutes.get('/users/:userId/tasks', TaskController.getUserTasks);
 taskRoutes.get('/users/:userId/stats', TaskController.getUserStats);
+taskRoutes.get('/tasks/overdue', TaskController.getOverdueTasks);
 taskRoutes.post('/users/:userId/tasks', TaskController.createTask);
 
 

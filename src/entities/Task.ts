@@ -5,12 +5,15 @@ import {
    CreateDateColumn,
    UpdateDateColumn,
    ManyToOne,
+   ManyToMany,
    JoinColumn,
+   JoinTable,
    Index
 } from 'typeorm';
 import { User } from './User';
 import { Category } from './Category';
-
+import { Tag } from './Tag'
+import { Expose } from 'class-transformer';
 
 @Entity('tasks')
 @Index(['userId'])
@@ -66,10 +69,26 @@ export class Task {
   @Column({ type: 'boolean', default: false })
   isDeleted!: boolean;
 
+    @ManyToMany(() => Tag, (tag) => tag.tasks, { cascade: true })
+    @JoinTable({
+        name: 'task_tags',
+        joinColumn: { name: 'task_id', referencedColumnName: 'id' },
+        inverseJoinColumn: { name: 'tag_id', referencedColumnName: 'id' }
+    })
+    tags!: Tag[];
+
    @CreateDateColumn()
    createdAt!: Date;
 
 
    @UpdateDateColumn()
    updatedAt!: Date;
+
+    @Expose() // Ensures this virtual property is included when serialized to JSON
+    get isOverdue(): boolean {
+        if (!this.dueDate) return false;
+        const now = new Date();
+        // Compare date part or full timestamp
+        return new Date(this.dueDate) < now && this.status !== 'completed';
+    }
 }

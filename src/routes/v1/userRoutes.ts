@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { UserController } from '../controllers/userController';
+import { UserController } from '../../controllers/userController';
 
 export const userRoutes = Router();
 
@@ -11,6 +11,8 @@ userRoutes.get('/:id', UserController.getById);
 
 // POST /api/users
 userRoutes.post('/', UserController.create);
+
+userRoutes.post('/with-initial-task', UserController.createUserWithInitialTask);
 
 // PUT /api/users/:id
 userRoutes.put('/:id', UserController.update);

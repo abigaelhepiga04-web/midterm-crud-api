@@ -1,13 +1,20 @@
 import { Request, Response } from 'express';
 import { AppDataSource } from '../config/data-source';
 import { User } from '../entities/User';
+import { Task } from '../entities/Task';
 import { CreateUserDto } from '../dto/user.dto';
+import { instanceToPlain } from 'class-transformer';
 import bcrypt from 'bcrypt';
 
 
 
 const userRepository = AppDataSource.getRepository(User);
+const taskRespository = AppDataSource.getRepository(Task);
 
+export const sanitizeInput = (value: string | undefined): string => {
+    if (!value || typeof value !== 'string') return value || '';
+    return value.replace(/<[^>]*>?/gm, '').trim();
+};
 
 export class UserController {
    // GET /api/users - Get all users
@@ -177,6 +184,80 @@ export class UserController {
            });
        }
    }
+
+
+    // POST /api/users/with-initial-task - Create User and Task in a Transaction
+    static async createUserWithInitialTask(req: Request, res: Response) {
+        const { user: userData, task: taskData } = req.body;
+
+        try {
+            const userId = await AppDataSource.transaction(async (transactionalEntityManager) => {
+                // 1. Validate required user fields
+                if (!userData || !userData.email || !userData.password || !userData.name) {
+                    throw new Error('Missing required user fields (name, email, password)');
+                }
+
+                // 2. Hash user password
+                const hashedPassword = await bcrypt.hash(userData.password, 10);
+
+                // 3. Create and save User
+                const user = transactionalEntityManager.create(User, {
+                    name: userData.name,
+                    email: userData.email,
+                    password: hashedPassword,
+                    phoneNumber: userData.phoneNumber || null
+                });
+                const savedUser = await transactionalEntityManager.save(user);
+
+                // 4. Create and save Initial Task (if provided) with Input Sanitization (Task 26)
+                if (taskData && taskData.title) {
+                    const cleanTitle = sanitizeInput(taskData.title);
+                    const cleanDescription = sanitizeInput(taskData.description);
+
+                    const task = transactionalEntityManager.create(Task, {
+                        title: cleanTitle,
+                        description: cleanDescription || '',
+                        status: taskData.status || 'pending',
+                        priority: taskData.priority || 'medium',
+                        dueDate: taskData.dueDate || null,
+                        userId: savedUser.id
+                    });
+                    await transactionalEntityManager.save(task);
+                }
+
+                return savedUser.id; // Return just the ID so we can cleanly fetch with relations outside or inside
+            });
+
+            // Fetch the fully populated user with tasks and apply instanceToPlain
+            const completeUser = await AppDataSource.getRepository(User).findOne({
+                where: { id: userId },
+                relations: {
+                    tasks: {
+                        tags: true
+                    }
+                }
+            });
+
+            console.log("Tasks array:", completeUser?.tasks);
+            console.log("Is overdue test:", completeUser?.tasks?.[0]?.isOverdue);
+
+            return res.status(201).json({
+                success: true,
+                message: 'User and initial task created successfully within transaction',
+                data: instanceToPlain(completeUser)
+            });
+
+        } catch (error: any) {
+            console.error('Transaction rolled back due to error:', error.message);
+            return res.status(400).json({
+                success: false,
+                error: {
+                    code: 'TRANSACTION_FAILED',
+                    message: error.message || 'Failed to complete transaction'
+                }
+            });
+        }
+    }
 
 
    // PUT /api/users/:id - Update a user

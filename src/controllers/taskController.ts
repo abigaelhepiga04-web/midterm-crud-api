@@ -5,12 +5,19 @@ import { Task } from '../entities/Task';
 import { User } from '../entities/User';
 import { Category } from '../entities/Category';
 import { CreateTaskDto } from '../dto/task.dto';
+import { TaskRepository } from '../repositories/taskRepository';
+import { instanceToPlain } from 'class-transformer';
 
 
 const taskRepository = AppDataSource.getRepository(Task);
 const userRepository = AppDataSource.getRepository(User);
 const categoryRepository = AppDataSource.getRepository(Category);
 
+// Helper function to strip basic HTML tags and prevent XSS (Task 26)
+const sanitizeInput = (value: string | undefined): string => {
+    if (!value || typeof value !== 'string') return value || '';
+    return value.replace(/<[^>]*>?/gm, '').trim();
+};
 
 export class TaskController {
    // GET /api/users/:userId/tasks - Get all tasks for a user
@@ -62,7 +69,7 @@ export class TaskController {
 
            res.json({
                success: true,
-               data: tasks,
+               data: instanceToPlain(tasks),
                meta: {
                    total,
                    page: pageNum,
@@ -79,6 +86,27 @@ export class TaskController {
        }
    }
 
+
+    // GET /api/tasks/overdue - Get all overdue tasks using the custom repository
+    static async getOverdueTasks(req: Request, res: Response) {
+        try {
+            // Instantiate your custom repository class directly using the entity and active manager
+            const taskRepo = new TaskRepository(Task, AppDataSource.manager);
+            const overdueTasks = await taskRepo.findOverdueTasks();
+
+            return res.status(200).json({
+                success: true,
+                count: overdueTasks.length,
+                data: instanceToPlain(overdueTasks)
+            });
+        } catch (error) {
+            console.error('Error fetching overdue tasks:', error);
+            return res.status(500).json({
+                success: false,
+                error: { code: 'INTERNAL_ERROR', message: 'Failed to fetch overdue tasks' }
+            });
+        }
+    }
 
    // POST /api/users/:userId/tasks - Create a task for a user
    static async createTask(req: Request, res: Response) {
@@ -131,9 +159,13 @@ export class TaskController {
                 }
             }
 
+            // Sanitize title and description to strip out HTML tags and prevent XSS (Task 26)
+            const cleanTitle = sanitizeInput(title);
+            const cleanDescription = sanitizeInput(description);
+
            const task = taskRepository.create({
-               title,
-               description,
+               title: cleanTitle,
+               description: cleanDescription,
                status: status || 'pending',
                priority: priority || 'medium',
                dueDate: dueDate || null,
@@ -148,7 +180,7 @@ export class TaskController {
            res.status(201).json({
                success: true,
                message: 'Task created successfully',
-               data: savedTask
+               data: instanceToPlain(savedTask)
            });
        } catch (error) {
            console.error('Error creating task:', error);
