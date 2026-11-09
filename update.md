@@ -1,7 +1,9 @@
 Abigael Hepiga - Midterm Hands ON
 
 Phase 2: Core Modifications & New Features (Use Cases 8 - 22)
+
 Task 8-22 Done 
+
 8. Add a New Column (Migration)
 9. Update Validation
 10. Add a New Entity (Category)
@@ -19,7 +21,8 @@ Task 8-22 Done
 22. Refactor to DTOs
 
 Phase 3: Advanced Scenarios & Architecture, Final Polish & Documentation (Use Cases 23 - 30)
-Task 23-30
+
+Task 23-30 Done
 
 23. Implement Transactions
 24. Custom Repository Method 
